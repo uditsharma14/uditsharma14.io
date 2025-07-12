@@ -1,7 +1,7 @@
 import pandas as pd
 
 # 1) Set your cutoff date here:
-cutoff_date = "2024-05-21"
+cutoff_date = "2023-05-21"
 
 # 2) File paths
 input_csv = "data/owid-covid-data.csv"
