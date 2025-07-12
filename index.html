@@ -26,7 +26,8 @@
   <div class="chart"></div>
 
   <script>
-    const margin = { top: 20, right: 30, bottom: 50, left: 70 };
+    // Increased left and bottom margins to avoid overlap of axis titles
+    const margin = { top: 20, right: 30, bottom: 60, left: 100 };
     const width = 960 - margin.left - margin.right;
     const height = 500 - margin.top - margin.bottom;
 
@@ -38,7 +39,7 @@
       .attr('transform', `translate(${margin.left},${margin.top})`);
 
     const parseDate = d3.timeParse('%Y-%m-%d');
-    const formatDate = d3.timeFormat('%b %Y');
+    const formatDate = d3.timeFormat('%b %y');
 
     const dataUrl = 'https://uditsharma14.github.io/uditsharma14.io/data/owid-covid-data.csv';
     d3.csv(dataUrl).then(raw => {
@@ -59,27 +60,30 @@
       const xAxis = d3.axisBottom(x).tickFormat(formatDate);
       const yAxis = d3.axisLeft(y).tickFormat(d3.format(","));
 
-      svg.append('g')
-        .attr('class', 'axis')
-        .attr('transform', `translate(0,${height})`)
-        .call(xAxis)
-        .append('text')
-          .attr('x', width / 2)
-          .attr('y', 40)
-          .attr('fill', '#000')
-          .attr('text-anchor', 'middle')
-          .text('Date (Month Year)');
-
+      // Draw Y axis + title
       svg.append('g')
         .attr('class', 'axis')
         .call(yAxis)
         .append('text')
           .attr('transform', 'rotate(-90)')
           .attr('x', -height / 2)
-          .attr('y', -50)
+          .attr('y', -margin.left )  // moved further left
+          .attr('dy', '1em')
           .attr('fill', '#000')
           .attr('text-anchor', 'middle')
           .text('Daily New COVID-19 Cases');
+
+      // Draw X axis + title
+      svg.append('g')
+        .attr('class', 'axis')
+        .attr('transform', `translate(0,${height})`)
+        .call(xAxis)
+        .append('text')
+          .attr('x', width / 2)
+          .attr('y', margin.bottom - 15)  // moved down to avoid overlap
+          .attr('fill', '#000')
+          .attr('text-anchor', 'middle')
+          .text('Date (Month Year)');
 
       // Line generator
       const line = d3.line()
@@ -108,7 +112,7 @@
         .attr('fill', 'steelblue')
         .on('mouseover', (event, d) => {
           tooltip.transition().duration(100).style('opacity', .9);
-          tooltip.html(`${d3.timeFormat('%b %d, %Y')(d.date)}<br/>${d.cases.toLocaleString()} cases`)
+          tooltip.html(`${d3.timeFormat('%b %d, %y')(d.date)}<br/>${d.cases.toLocaleString()} cases`)
             .style('left', (event.pageX + 10) + 'px')
             .style('top', (event.pageY - 28) + 'px');
         })
