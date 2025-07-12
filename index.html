@@ -1,7 +1,100 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>USA COVID-19 Daily New Cases</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    body { font-family: sans-serif; }
+    .chart { margin: 40px; }
+    .axis path, .axis line { stroke: #ccc; }
+    .line { fill: none; stroke: steelblue; stroke-width: 2px; }
+    .tooltip {
+      position: absolute;
+      background: rgba(255, 255, 255, 0.8);
+      padding: 6px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      pointer-events: none;
+      font-size: 12px;
+    }
+  </style>
+</head>
 <body>
-<h1>Hello World</h1>
-<p>I'm hosted with GitHub Pages this is first page.</p>
+  <div class="chart"></div>
+  <script>
+    const margin = { top: 20, right: 30, bottom: 30, left: 50 };
+    const width = 960 - margin.left - margin.right;
+    const height = 500 - margin.top - margin.bottom;
+
+    const svg = d3.select('.chart')
+      .append('svg')
+      .attr('width', width + margin.left + margin.right)
+      .attr('height', height + margin.top + margin.bottom)
+      .append('g')
+      .attr('transform', `translate(${margin.left},${margin.top})`);
+
+    const parseDate = d3.timeParse('%Y-%m-%d');
+
+    // URL to CSV data: OWID dataset (Our World in Data)
+    const dataUrl = 'https://covid.ourworldindata.org/data/owid-covid-data.csv';
+
+    d3.csv(dataUrl).then(raw => {
+      // Filter for USA and keep date and new_cases columns
+      const data = raw
+        .filter(d => d.iso_code === 'USA')
+        .map(d => ({ date: parseDate(d.date), cases: +d.new_cases }))
+        .filter(d => d.date && !isNaN(d.cases));
+
+      // Scales
+      const x = d3.scaleTime()
+        .domain(d3.extent(data, d => d.date))
+        .range([0, width]);
+      const y = d3.scaleLinear()
+        .domain([0, d3.max(data, d => d.cases)]).nice()
+        .range([height, 0]);
+
+      // Axes
+      svg.append('g')
+        .attr('class', 'axis')
+        .attr('transform', `translate(0,${height})`)
+        .call(d3.axisBottom(x));
+
+      svg.append('g')
+        .attr('class', 'axis')
+        .call(d3.axisLeft(y));
+
+      // Line generator
+      const line = d3.line()
+        .x(d => x(d.date))
+        .y(d => y(d.cases));
+
+      // Draw line
+      svg.append('path')
+        .datum(data)
+        .attr('class', 'line')
+        .attr('d', line);
+
+      // Tooltip
+      const tooltip = d3.select('body').append('div').attr('class', 'tooltip').style('opacity', 0);
+
+      // Draw circles for hover
+      svg.selectAll('circle')
+        .data(data.filter((d, i) => i % 30 === 0)) // reduce number of points
+        .join('circle')
+        .attr('cx', d => x(d.date))
+        .attr('cy', d => y(d.cases))
+        .attr('r', 3)
+        .attr('fill', 'steelblue')
+        .on('mouseover', (event, d) => {
+          tooltip.transition().duration(100).style('opacity', .9);
+          tooltip.html(`${d3.timeFormat('%b %d, %Y')(d.date)}<br/>${d.cases.toLocaleString()} cases`)
+            .style('left', (event.pageX + 10) + 'px')
+            .style('top', (event.pageY - 28) + 'px');
+        })
+        .on('mouseout', () => tooltip.transition().duration(200).style('opacity', 0));
+    }).catch(error => console.error('Error loading data:', error));
+  </script>
 </body>
 </html>
