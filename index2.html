@@ -31,7 +31,6 @@
                 totalCases: +d.total_cases || 0
             }))
         ]).then(([world, rawData]) => {
-
             // --- 1) Aggregate to latest per ISO code ---
             const casesByIso = new Map();
             rawData.forEach(d => {
