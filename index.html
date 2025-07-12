@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -39,7 +40,7 @@
 
     const parseDate = d3.timeParse('%Y-%m-%d');
 
-    const dataUrl = 'data/owid-covid-data.csv';
+    const dataUrl = 'https://uditsharma14.github.io/uditsharma14.io/data/owid-covid-data.csv';
     d3.csv(dataUrl).then(raw => {
       const data = raw
         .filter(d => d.iso_code === 'USA')
@@ -60,7 +61,7 @@
 
       svg.append('g')
         .attr('class', 'axis')
-        .call(d3.axisLeft(y));
+        .call(d3.axisLeft(y).tickFormat(d3.format(",")));
 
       const line = d3.line()
         .x(d => x(d.date))
