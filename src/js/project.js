@@ -10,22 +10,22 @@ let fullData = [], xScale, yScale, currentScene = 0, scenes;
 
 
 const svg2 = d3.select("#map")
-    // ensure the map SVG is the same size as your chart SVG
-    .attr("width",  +svg.attr("width"))
-    .attr("height", +svg.attr("height"))
-    // origin 0,0 in its own box
-    .attr("viewBox", `0 0 ${width + margin.left + margin.right} ${height + margin.top + margin.bottom}`);
+  // ensure the map SVG is the same size as your chart SVG
+  .attr("width", +svg.attr("width"))
+  .attr("height", +svg.attr("height"))
+  // origin 0,0 in its own box
+  .attr("viewBox", `0 0 ${width + margin.left + margin.right} ${height + margin.top + margin.bottom}`);
 
 const projection = d3.geoNaturalEarth1()
-    .fitSize(
-      [width + margin.left + margin.right, height + margin.top + margin.bottom],
-      { type: "Sphere" }
-    );
+  .fitSize(
+    [width + margin.left + margin.right, height + margin.top + margin.bottom],
+    { type: "Sphere" }
+  );
 
 const path = d3.geoPath(projection);
 
 // target the tooltip you actually have in your HTML
-const tooltip2 = d3.select("#tooltip1");
+const tooltipMap = d3.select("#tooltip-map");
 
 const tooltip = d3.select("#tooltip");
 const dataUrl = 'https://uditsharma14.github.io/uditsharma14.io/data/owid-covid-data_final_2023_1.csv';
@@ -192,51 +192,68 @@ Promise.all([
     totalCases: +d.total_cases || 0
   }))
 ]).then(([world, rawData]) => {
+
+  const iso3List = world.features.map(f => f.id);
+  console.log(iso3List);
   // --- 1) Aggregate to latest per ISO code ---
   const casesByIso = new Map();
   rawData.forEach(d => {
-    if (!d.iso || !d.date) return;  // skip invalid rows
+    if (!d.iso || !d.date ) return;  // skip invalid rows
     const existing = casesByIso.get(d.iso);
-    if (!existing || d.date > existing.date) {
+    if ((!existing || d.date > existing.date) && iso3List.includes(d.iso)){
       casesByIso.set(d.iso, d);
     }
   });
 
   // Build continent color scale
-  const continents = Array.from(new Set(Array.from(casesByIso.values()).map(d => d.continent).filter(c => c)));
+  //const continents = Array.from(new Set(Array.from(casesByIso.values()).map(d => d.continent).filter(c => c)));
 
-  const color = d3.scaleOrdinal() .domain(continents).range(d3.schemeCategory10);
+  
+  console.log(world.features)
+  const allTotals = Array.from(casesByIso.values()).map(d => d.totalCases);
+  const minCases = d3.min(allTotals);
+  const maxCases = d3.max(allTotals);
+  console.log(minCases);
+  console.log(maxCases);
+
+
+
+  const colorByCases = d3.scaleSequential()
+    .domain([d3.min(allTotals), d3.max(allTotals)])
+    .interpolator(d3.interpolateRgb("#fee5d9", "#8B0000"))
+    .clamp(true);  // light → dark
+  
+    // 4) (Optional) sanity‐check in the console:
+console.log(
+  colorByCases(minCases),   // → "#fee5d9"
+  colorByCases(maxCases),   // → "#8b0000"
+  colorByCases(maxCases*1.5) // → "#8b0000" (because of clamp)
+);
 
   // Draw countries
-  svg2.append("g").selectAll("path").data(world.features).join("path") .attr("class", "country").attr("d", path)
+  svg2.append("g")
+    .selectAll("path")
+    .data(world.features)
+    .join("path")
+    .attr("class", "country")
+    .attr("d", path)
     .attr("fill", d => {
       const info = casesByIso.get(d.id);
-      return info ? color(info.continent) : "#eee";
+      return info
+        ? colorByCases(info.totalCases)   // ← use totalCases here
+        : "#eee";
     })
     .on("mouseover", (event, d) => {
       const info = casesByIso.get(d.id);
-      tooltip.html(`
-            <strong>${d.properties.name}</strong><br/>
-            Continent: ${info ? info.continent : "N/A"}<br/>
-            Total cases: ${info ? d3.format(",")(info.totalCases) : "N/A"}
-          `)
+      console.log(info)
+      tooltipMap.html(`
+        <strong>${d.properties.name}</strong><br/>
+        Continent: ${info ? info.continent : "N/A"}<br/>
+        Total cases: ${info ? d3.format(",")(info.totalCases) : "N/A"}
+      `)
         .style("left", (event.pageX + 10) + "px")
         .style("top", (event.pageY - 28) + "px")
         .style("opacity", 1);
     })
-    .on("mouseout", () => tooltip.style("opacity", 0));
-
-  // Optional legend
-  const legend = svg2.append("g")
-    .attr("transform", `translate(20,20)`);
-  continents.forEach((cont, i) => {
-    const g = legend.append("g")
-      .attr("transform", `translate(0,${i * 20})`);
-    g.append("rect")
-      .attr("width", 18).attr("height", 18)
-      .attr("fill", color(cont));
-    g.append("text")
-      .attr("x", 24).attr("y", 14)
-      .text(cont);
-  })
+    .on("mouseout", () => tooltipMap.style("opacity", 0));
 });
