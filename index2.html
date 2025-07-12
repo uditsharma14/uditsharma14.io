@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>World COVID-19 Total Cases Choropleth</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://unpkg.com/topojson-client@3"></script>
+</head>
+
+<body>
+    <div class="tooltip1" id="tooltip"></div>
+    <svg id="map"></svg>
+    <script>
+        const width  = window.innerWidth,
+        height = window.innerHeight,
+        svg    = d3.select("#map")
+                   .attr("viewBox", [0, 0, width, height]),
+        projection = d3.geoNaturalEarth1().fitSize([width, height], { type: "Sphere" }),
+        path       = d3.geoPath(projection),
+        tooltip    = d3.select("#tooltip");
+
+        // 1) Load both datasets in parallel
+        Promise.all([
+            d3.json("https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson"),
+            d3.csv("https://uditsharma14.github.io/uditsharma14.io/data/owid-covid-data_final_2023_1.csv", d => ({
+                iso: d.iso_code,
+                continent: d.continent,
+                location: d.location,
+                date: d3.timeParse("%Y-%m-%d")(d.date),
+                totalCases: +d.total_cases || 0
+            }))
+        ]).then(([world, rawData]) => {
+
+            // --- 1) Aggregate to latest per ISO code ---
+            const casesByIso = new Map();
+            rawData.forEach(d => {
+                if (!d.iso || !d.date) return;  // skip invalid rows
+                const existing = casesByIso.get(d.iso);
+                if (!existing || d.date > existing.date) {
+                    casesByIso.set(d.iso, d);
+                }
+            });
+
+            // Build continent color scale
+            const continents = Array.from(new Set(
+                Array.from(casesByIso.values()).map(d => d.continent).filter(c => c)
+            ));
+            
+            const color = d3.scaleOrdinal()
+                .domain(continents)
+                .range(d3.schemeCategory10);
+
+            // Draw countries
+            svg.append("g")
+                .selectAll("path")
+                .data(world.features)
+                .join("path")
+                .attr("class", "country")
+                .attr("d", path)
+                .attr("fill", d => {
+                    console.log(d.id)
+                    const info = casesByIso.get(d.id);
+                    return info ? color(info.continent) : "#eee";
+                })
+                .on("mouseover", (event, d) => {
+                    const info = casesByIso.get(d.id);
+                    tooltip.html(`
+            <strong>${d.properties.name}</strong><br/>
+            Continent: ${info ? info.continent : "N/A"}<br/>
+            Total cases: ${info ? d3.format(",")(info.totalCases) : "N/A"}
+          `)
+                        .style("left", (event.pageX + 10) + "px")
+                        .style("top", (event.pageY - 28) + "px")
+                        .style("opacity", 1);
+                })
+                .on("mouseout", () => tooltip.style("opacity", 0));
+
+            // Optional legend
+            const legend = svg.append("g")
+                .attr("transform", `translate(20,20)`);
+            continents.forEach((cont, i) => {
+                const g = legend.append("g")
+                    .attr("transform", `translate(0,${i * 20})`);
+                g.append("rect")
+                    .attr("width", 18).attr("height", 18)
+                    .attr("fill", color(cont));
+                g.append("text")
+                    .attr("x", 24).attr("y", 14)
+                    .text(cont);
+            })
+        });
+    </script>
+</body>
+
+</html>
