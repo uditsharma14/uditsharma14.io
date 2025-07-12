@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>COVID-19 USA Cases: Narrative Visualization</title>
-  <script src="https://d3js.org/d3.v7.min.js"></script>
-  <script src="https://unpkg.com/d3-annotation@2.5.1/build/d3-annotation.min.js"></script>
-  <style>
+    <head>
+        <meta charset="UTF-8">
+        <title>COVID-19 USA Cases: Narrative Visualization</title>
+        <script src="https://d3js.org/d3.v7.min.js"></script>
+        <!-- Load d3-annotation -->
+        <script
+            src="https://rawgit.com/susielu/d3-annotation/master/d3-annotation.min.js"></script>
+        <style>
     body {
       font-family: sans-serif;
       margin: 20px;
@@ -35,20 +37,20 @@
       transition: opacity 0.1s;
     }
   </style>
-</head>
-<body>
+    </head>
+    <body>
 
-  <h1>COVID-19 Daily New Cases in the USA</h1>
-  <div id="controls">
-    <button id="prev" disabled>← Prev</button>
-    <button id="next">Next →</button>
-  </div>
-  <div style="position: relative; display: inline-block;">
-    <svg id="chart" width="900" height="500"></svg>
-    <div class="tooltip" id="tooltip"></div>
-  </div>
+        <h1>COVID-19 Daily New Cases in the USA</h1>
+        <div id="controls">
+            <button id="prev" disabled>← Prev</button>
+            <button id="next">Next →</button>
+        </div>
+        <div style="position: relative; display: inline-block;">
+            <svg id="chart" width="900" height="500"></svg>
+            <div class="tooltip" id="tooltip"></div>
+        </div>
 
-  <script>
+        <script>
   // --- Globals & State ---
   const svg       = d3.select("#chart"),
         margin    = { top: 50, right: 20, bottom: 80, left: 100 },
@@ -82,6 +84,7 @@
     yScale = d3.scaleLinear()
                .range([height, 0])
                .domain([0, d3.max(fullData, d => d.cases)]);
+    
     // define scenes
     scenes = [ renderOverview, renderFirstWave, renderOmicron ];
     // wire buttons
@@ -131,36 +134,41 @@
   }
 
   function drawBars(data, x, y) {
-    container.selectAll("rect")
-      .data(data)
-      .join("rect")
+      container.selectAll("rect")
+        .data(data)
+        .join("rect")
         .attr("x", d => x(d.date) - 1)
         .attr("y", d => y(d.cases))
         .attr("width", 2)
         .attr("height", d => height - y(d.cases))
-        .on("mouseover", d => {
+        .attr("fill", "red")                    // ← add this
+        .on("mouseover", function (event, d) {
+          const [mx, my] = d3.pointer(event, document.body);
           tooltip.style("opacity", 1)
-                 .html(`<strong>${d3.timeFormat("%b %d, %Y")(d.date)}</strong><br/>${d3.format(",")(d.cases)} cases`)
-                 .style("left", (d3.event.pageX + 10) + "px")
-                 .style("top",  (d3.event.pageY - 28) + "px");
+            .html(`<strong>${d3.timeFormat("%b %d, %Y")(d.date)}</strong><br/>${d3.format(",")(d.cases)} cases`)
+            .style("left", (mx + 10) + "px")
+            .style("top", (my - 30) + "px");
         })
         .on("mouseout", () => tooltip.style("opacity", 0));
-  }
+    }
 
   // --- Scene Definitions ---
   function renderOverview() {
     drawAxes(xScale, yScale);
     drawBars(fullData, xScale, yScale);
-
-    // Annotation: Omicron spike
+    const x1 = xScale.copy().domain([ parseDate("2020-03-01"), parseDate("2021-01-31") ]);
     const ann = d3.annotation()
       .annotations([{
-        note: { title: "Omicron Spike", label: "Jan 2022: >5M cases" },
-        x: xScale(parseDate("2022-01-15")),
-        y: yScale(5_000_000),
-        dx:  +30, dy: -50
+        note: { title: "Covid First Waves", label: "Daily ~70K cases" },
+        x: x1(parseDate("2020-07-15")),
+        y: yScale(4500_000),
+        dx: 0, dy: -40
       }]);
-    container.append("g").call(ann);
+
+    container.append("g")
+      .attr("class", "annotation-group")
+      .call(ann);
+
   }
 
   function renderFirstWave() {
@@ -201,5 +209,5 @@
     container.append("g").call(ann);
   }
   </script>
-</body>
+    </body>
 </html>
