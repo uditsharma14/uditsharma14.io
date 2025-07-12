@@ -159,7 +159,7 @@
     const x1 = xScale.copy().domain([ parseDate("2020-03-01"), parseDate("2021-01-31") ]);
     const ann = d3.annotation()
       .annotations([{
-        note: { title: "Covid First Waves", label: "Daily ~70K cases" },
+        note: { title: "Covid Cases Overview ", label: "Daily ~70K cases" },
         x: x1(parseDate("2020-07-15")),
         y: yScale(4500_000),
         dx: 0, dy: -40
@@ -178,7 +178,7 @@
 
     const ann = d3.annotation()
       .annotations([{
-        note: { title: "July 2020 Peak", label: "Daily ~70K cases" },
+        note: { title: "Covid First Wave,Daily ~70K cases", label: "July 2020 Peak" },
         x: x1(parseDate("2020-07-15")),
         y: yScale(70_000),
         dx:   0, dy: -40
@@ -197,6 +197,12 @@
           note: { title: "Rapid Surge", label: "Nov–Dec 2021" },
           x: x2(parseDate("2021-12-01")),
           y: yScale(1_000_000),
+          dx: -20, dy: -40
+        },
+        {
+          note: { title: "Omicron Wave", label: "Nov 2021 – Feb 2022" },
+          x: x2(parseDate("2022-02-01")),
+          y: yScale(4500_000),
           dx: -20, dy: -40
         },
         {
