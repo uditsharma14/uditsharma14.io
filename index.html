@@ -38,7 +38,7 @@
     const parseDate = d3.timeParse('%Y-%m-%d');
 
     // URL to CSV data: OWID dataset (Our World in Data)
-    const dataUrl = 'https://covid.ourworldindata.org/data/owid-covid-data.csv';
+    const dataUrl = '/data/owid-covid-data.csv';
 
     d3.csv(dataUrl).then(raw => {
       // Filter for USA and keep date and new_cases columns
