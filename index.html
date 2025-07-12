@@ -1,124 +1,205 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>USA COVID-19 Daily New Cases</title>
+  <meta charset="UTF-8">
+  <title>COVID-19 USA Cases: Narrative Visualization</title>
   <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://unpkg.com/d3-annotation@2.5.1/build/d3-annotation.min.js"></script>
   <style>
-    body { margin: 20px; font-family: sans-serif; text-align: center; }
-    .chart { display: inline-block; margin: 40px; }
-    .axis path, .axis line { stroke: #ccc; }
-    .axis text { font-size: 12px; }
-    .line { fill: none; stroke: steelblue; stroke-width: 2px; }
+    body {
+      font-family: sans-serif;
+      margin: 20px;
+      text-align: center;
+    }
+    #controls {
+      margin-bottom: 10px;
+    }
+    button {
+      padding: 6px 12px;
+      font-size: 14px;
+    }
+    svg {
+      background: #fff;
+      border: 1px solid #ddd;
+      display: inline-block;
+    }
     .tooltip {
       position: absolute;
-      background: rgba(255, 255, 255, 0.8);
-      padding: 6px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
       pointer-events: none;
+      background: rgba(0,0,0,0.7);
+      color: #fff;
+      padding: 4px 8px;
       font-size: 12px;
+      border-radius: 4px;
+      opacity: 0;
+      transition: opacity 0.1s;
     }
   </style>
 </head>
 <body>
-  <div class="chart"></div>
+
+  <h1>COVID-19 Daily New Cases in the USA</h1>
+  <div id="controls">
+    <button id="prev" disabled>← Prev</button>
+    <button id="next">Next →</button>
+  </div>
+  <div style="position: relative; display: inline-block;">
+    <svg id="chart" width="900" height="500"></svg>
+    <div class="tooltip" id="tooltip"></div>
+  </div>
 
   <script>
-    // Increased left and bottom margins to avoid overlap of axis titles
-    const margin = { top: 20, right: 30, bottom: 60, left: 100 };
-    const width = 960 - margin.left - margin.right;
-    const height = 500 - margin.top - margin.bottom;
+  // --- Globals & State ---
+  const svg       = d3.select("#chart"),
+        margin    = { top: 50, right: 20, bottom: 80, left: 100 },
+        width     = +svg.attr("width")  - margin.left - margin.right,
+        height    = +svg.attr("height") - margin.top  - margin.bottom,
+        container = svg.append("g")
+                       .attr("transform", `translate(${margin.left},${margin.top})`);
 
-    const svg = d3.select('.chart')
-      .append('svg')
-      .attr('width', width + margin.left + margin.right)
-      .attr('height', height + margin.top + margin.bottom)
-      .append('g')
-      .attr('transform', `translate(${margin.left},${margin.top})`);
+  let fullData = [],                  // will hold { date: Date, cases: Number }[]
+      xScale, yScale,                // base scales
+      currentScene = 0,
+      scenes;
 
-    const parseDate = d3.timeParse('%Y-%m-%d');
-    const formatDate = d3.timeFormat('%b %y');
+  const tooltip = d3.select("#tooltip");
 
-    const dataUrl = 'https://uditsharma14.github.io/uditsharma14.io/data/owid-covid-data.csv';
-    d3.csv(dataUrl).then(raw => {
-      const data = raw
-        .filter(d => d.iso_code === 'USA')
-        .map(d => ({ date: parseDate(d.date), cases: +d.new_cases }))
-        .filter(d => d.date && !isNaN(d.cases));
+  const dataUrl = 'https://uditsharma14.github.io/uditsharma14.io/data/owid-covid-data.csv';
 
-      // Scales
-      const x = d3.scaleTime()
-        .domain(d3.extent(data, d => d.date))
-        .range([0, width]);
-      const y = d3.scaleLinear()
-        .domain([0, d3.max(data, d => d.cases)]).nice()
-        .range([height, 0]);
 
-      // Axes
-      const xAxis = d3.axisBottom(x).tickFormat(formatDate);
-      const yAxis = d3.axisLeft(y).tickFormat(d3.format(","));
+  // --- Load & Parse Data ---
+  const parseDate = d3.timeParse("%Y-%m-%d");
+  d3.csv(dataUrl,
+    d => d.iso_code === "USA" 
+         ? { date: parseDate(d.date), cases: +d.new_cases } 
+         : null
+  ).then(raw => {
+    fullData = raw.filter(d => d).sort((a,b) => a.date - b.date);
+    // define base scales
+    xScale = d3.scaleTime()
+               .range([0, width])
+               .domain(d3.extent(fullData, d => d.date));
+    yScale = d3.scaleLinear()
+               .range([height, 0])
+               .domain([0, d3.max(fullData, d => d.cases)]);
+    // define scenes
+    scenes = [ renderOverview, renderFirstWave, renderOmicron ];
+    // wire buttons
+    d3.select("#prev").on("click", () => changeScene(-1));
+    d3.select("#next").on("click", () => changeScene( 1));
+    // initial render
+    renderScene();
+  });
 
-      // Draw Y axis + title
-      svg.append('g')
-        .attr('class', 'axis')
-        .call(yAxis)
-        .append('text')
-          .attr('transform', 'rotate(-90)')
-          .attr('x', -height / 2)
-          .attr('y', -margin.left )  // moved further left
-          .attr('dy', '1em')
-          .attr('fill', '#000')
-          .attr('text-anchor', 'middle')
-          .text('Daily New COVID-19 Cases');
+  // --- Scene Control ---
+  function changeScene(delta) {
+    currentScene = Math.max(0, Math.min(scenes.length - 1, currentScene + delta));
+    d3.select("#prev").property("disabled", currentScene === 0);
+    d3.select("#next").property("disabled", currentScene === scenes.length - 1);
+    renderScene();
+  }
 
-      // Draw X axis + title
-      svg.append('g')
-        .attr('class', 'axis')
-        .attr('transform', `translate(0,${height})`)
-        .call(xAxis)
-        .append('text')
-          .attr('x', width / 2)
-          .attr('y', margin.bottom - 15)  // moved down to avoid overlap
-          .attr('fill', '#000')
-          .attr('text-anchor', 'middle')
-          .text('Date (Month Year)');
+  function renderScene() {
+    container.selectAll("*").remove();
+    scenes[currentScene]();
+  }
 
-      // Line generator
-      const line = d3.line()
-        .x(d => x(d.date))
-        .y(d => y(d.cases));
+  // --- Shared Drawing Helpers ---
+  function drawAxes(x, y) {
+    container.append("g")
+      .call(d3.axisLeft(y).tickFormat(d3.format(",")));
+    container.append("g")
+      .attr("transform", `translate(0,${height})`)
+      .call(d3.axisBottom(x).tickFormat(d3.timeFormat("%b %Y")))
+      .selectAll("text")
+        .attr("text-anchor", "end")
+        .attr("transform", "rotate(-40) translate(-5,0)");
+    // Axis titles
+    svg.selectAll(".axis-title").remove();
+    svg.append("text")
+      .attr("class", "axis-title")
+      .attr("x", margin.left + width/2)
+      .attr("y", margin.top + height + 60)
+      .attr("text-anchor", "middle")
+      .text("Date (Month Year)");
+    svg.append("text")
+      .attr("class", "axis-title")
+      .attr("transform", 
+            `translate(${margin.left - 60},${margin.top + height/2}) rotate(-90)`)
+      .attr("text-anchor", "middle")
+      .text("Daily New COVID-19 Cases");
+  }
 
-      // Draw line
-      svg.append('path')
-        .datum(data)
-        .attr('class', 'line')
-        .attr('d', line);
-
-      // Tooltip
-      const tooltip = d3.select('body')
-        .append('div')
-        .attr('class', 'tooltip')
-        .style('opacity', 0);
-
-      // Draw circles for hover
-      svg.selectAll('circle')
-        .data(data.filter((d, i) => i % 30 === 0))
-        .join('circle')
-        .attr('cx', d => x(d.date))
-        .attr('cy', d => y(d.cases))
-        .attr('r', 3)
-        .attr('fill', 'steelblue')
-        .on('mouseover', (event, d) => {
-          tooltip.transition().duration(100).style('opacity', .9);
-          tooltip.html(`${d3.timeFormat('%b %d, %y')(d.date)}<br/>${d.cases.toLocaleString()} cases`)
-            .style('left', (event.pageX + 10) + 'px')
-            .style('top', (event.pageY - 28) + 'px');
+  function drawBars(data, x, y) {
+    container.selectAll("rect")
+      .data(data)
+      .join("rect")
+        .attr("x", d => x(d.date) - 1)
+        .attr("y", d => y(d.cases))
+        .attr("width", 2)
+        .attr("height", d => height - y(d.cases))
+        .on("mouseover", d => {
+          tooltip.style("opacity", 1)
+                 .html(`<strong>${d3.timeFormat("%b %d, %Y")(d.date)}</strong><br/>${d3.format(",")(d.cases)} cases`)
+                 .style("left", (d3.event.pageX + 10) + "px")
+                 .style("top",  (d3.event.pageY - 28) + "px");
         })
-        .on('mouseout', () => tooltip.transition().duration(200).style('opacity', 0));
+        .on("mouseout", () => tooltip.style("opacity", 0));
+  }
 
-    }).catch(error => console.error('Error loading CSV:', error));
+  // --- Scene Definitions ---
+  function renderOverview() {
+    drawAxes(xScale, yScale);
+    drawBars(fullData, xScale, yScale);
+
+    // Annotation: Omicron spike
+    const ann = d3.annotation()
+      .annotations([{
+        note: { title: "Omicron Spike", label: "Jan 2022: >5M cases" },
+        x: xScale(parseDate("2022-01-15")),
+        y: yScale(5_000_000),
+        dx:  +30, dy: -50
+      }]);
+    container.append("g").call(ann);
+  }
+
+  function renderFirstWave() {
+    const x1 = xScale.copy().domain([ parseDate("2020-03-01"), parseDate("2021-01-31") ]);
+    drawAxes(x1, yScale);
+    drawBars(fullData.filter(d => d.date >= x1.domain()[0] && d.date <= x1.domain()[1]), x1, yScale);
+
+    const ann = d3.annotation()
+      .annotations([{
+        note: { title: "July 2020 Peak", label: "Daily ~70K cases" },
+        x: x1(parseDate("2020-07-15")),
+        y: yScale(70_000),
+        dx:   0, dy: -40
+      }]);
+    container.append("g").call(ann);
+  }
+
+  function renderOmicron() {
+    const x2 = xScale.copy().domain([ parseDate("2021-11-01"), parseDate("2022-03-31") ]);
+    drawAxes(x2, yScale);
+    drawBars(fullData.filter(d => d.date >= x2.domain()[0] && d.date <= x2.domain()[1]), x2, yScale);
+
+    const ann = d3.annotation()
+      .annotations([
+        {
+          note: { title: "Rapid Surge", label: "Nov–Dec 2021" },
+          x: x2(parseDate("2021-12-01")),
+          y: yScale(1_000_000),
+          dx: -20, dy: -40
+        },
+        {
+          note: { title: "Decline", label: "Feb–Mar 2022" },
+          x: x2(parseDate("2022-02-15")),
+          y: yScale(1_200_000),
+          dx: +30, dy: +30
+        }
+      ]);
+    container.append("g").call(ann);
+  }
   </script>
 </body>
 </html>
