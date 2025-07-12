@@ -5,7 +5,7 @@ cutoff_date = "2023-05-21"
 
 # 2) File paths
 input_csv = "data/owid-covid-data.csv"
-output_csv = "data/owid-covid-data_final_2023.csv"
+output_csv = "data/owid-covid-data_final_2023_1.csv"
 
 # 3) Load and parse dates
 df = pd.read_csv(input_csv, parse_dates=['date'])
