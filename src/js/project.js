@@ -189,7 +189,8 @@ Promise.all([
     continent: d.continent,
     location: d.location,
     date: d3.timeParse("%Y-%m-%d")(d.date),
-    totalCases: +d.total_cases || 0
+    totalCases: +d.total_cases || 0,
+    totaldeaths: + d.total_deaths||0
   }))
 ]).then(([world, rawData]) => {
 
@@ -242,7 +243,8 @@ Promise.all([
       tooltipMap.html(`
         <strong>${d.properties.name}</strong><br/>
         Continent: ${info ? info.continent : "N/A"}<br/>
-        Total cases: ${info ? d3.format(",")(info.totalCases) : "N/A"}
+        Total cases: ${info ? d3.format(",")(info.totalCases) : "N/A"}</br>
+        Total Deaths: ${info ? d3.format(",")(info.totaldeaths) : "N/A"}
       `)
         .style("left", (event.pageX + 10) + "px")
         .style("top", (event.pageY - 28) + "px")
@@ -264,11 +266,9 @@ Promise.all([
   // when the user picks a continent, re‐shade the map:
   select.on("change", () => {
     const chosen = select.node().value;
-
     svg2.selectAll("path.country")
       .transition().duration(300)
       .style("opacity", d => {
-        console.log(d.properties.name)
         const info = casesByIso.get(d.id);
         return (chosen === "All" || (info && info.continent === chosen))
           ? 1
