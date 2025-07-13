@@ -275,6 +275,67 @@ Promise.all([
           : 0;
       });
   });
+  // 1) Legend dimensions & position
+const legendWidth   = 120,
+      legendHeight  = 12,
+      legendX       = 10,
+      legendY       = +svg2.attr("height") - margin.bottom + 30;
+
+// 2) Ensure you have a <defs> + gradient (reuse if already present)
+const defs = svg2.select("defs") .empty()
+  ? svg2.append("defs")
+  : svg2.select("defs");
+
+const gradient = defs.select("#cases-gradient").empty()
+  ? defs.append("linearGradient").attr("id","cases-gradient")
+            .attr("x1","0%").attr("y1","0%")
+            .attr("x2","100%").attr("y2","0%")
+  : defs.select("#cases-gradient");
+
+// 3) (Re)populate your gradient stops
+gradient.selectAll("stop").remove();
+d3.range(0,1.01,0.01).forEach(t => {
+  gradient.append("stop")
+    .attr("offset", `${t*100}%`)
+    .attr("stop-color", colorByCases(minCases + t*(maxCases-minCases)));
+});
+
+// 4) Draw the legend bar group
+const legendG = svg2.append("g")
+  .attr("transform", `translate(${legendX},${legendY})`);
+
+// 5) Gradient rect
+legendG.append("rect")
+  .attr("width",  legendWidth)
+  .attr("height", legendHeight)
+  .style("fill", "url(#cases-gradient)")
+  .style("stroke", "#ccc")
+  .style("stroke-width", 1);
+
+// 6) Min & Max labels
+legendG.append("text")
+  .attr("x", 0)
+  .attr("y", legendHeight + 16)
+  .attr("text-anchor","start")
+  .style("font-size","12px")
+  .text(d3.format(".2s")(minCases));
+
+legendG.append("text")
+  .attr("x", legendWidth)
+  .attr("y", legendHeight + 16)
+  .attr("text-anchor","end")
+  .style("font-size","12px")
+  .text(d3.format(".2s")(maxCases));
+
+// 7) Optional title above
+legendG.append("text")
+  .attr("x", 0)
+  .attr("y", -6)
+  .style("font-size","13px")
+  .style("font-weight","600")
+  .text("Total Cases");
+
+  
 
 });
 
