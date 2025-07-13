@@ -194,41 +194,35 @@ Promise.all([
 ]).then(([world, rawData]) => {
 
   const iso3List = world.features.map(f => f.id);
-  console.log(iso3List);
   // --- 1) Aggregate to latest per ISO code ---
   const casesByIso = new Map();
   rawData.forEach(d => {
-    if (!d.iso || !d.date ) return;  // skip invalid rows
+    if (!d.iso || !d.date) return;  // skip invalid rows
     const existing = casesByIso.get(d.iso);
-    if ((!existing || d.date > existing.date) && iso3List.includes(d.iso)){
+    if ((!existing || d.date > existing.date) && iso3List.includes(d.iso)) {
       casesByIso.set(d.iso, d);
     }
   });
 
-  // Build continent color scale
-  //const continents = Array.from(new Set(Array.from(casesByIso.values()).map(d => d.continent).filter(c => c)));
+  const isoByContinent = new Map();
+  rawData.forEach(d => {
+    if (iso3List.includes(d.iso)) {
+      isoByContinent.set(d.iso, d.continent);
+    }
+  });
 
-  
-  console.log(world.features)
+  // Build continent color scale
+  const continents = Array.from(new Set(Array.from(casesByIso.values()).map(d => d.continent).filter(c => c)));
   const allTotals = Array.from(casesByIso.values()).map(d => d.totalCases);
   const minCases = d3.min(allTotals);
   const maxCases = d3.max(allTotals);
-  console.log(minCases);
-  console.log(maxCases);
 
-
+  const color = d3.scaleOrdinal().domain(continents).range(d3.schemeCategory10);
 
   const colorByCases = d3.scaleSequential()
-    .domain([d3.min(allTotals), d3.max(allTotals)])
+    .domain([minCases, maxCases])
     .interpolator(d3.interpolateRgb("#fee5d9", "#8B0000"))
     .clamp(true);  // light → dark
-  
-    // 4) (Optional) sanity‐check in the console:
-console.log(
-  colorByCases(minCases),   // → "#fee5d9"
-  colorByCases(maxCases),   // → "#8b0000"
-  colorByCases(maxCases*1.5) // → "#8b0000" (because of clamp)
-);
 
   // Draw countries
   svg2.append("g")
@@ -245,7 +239,6 @@ console.log(
     })
     .on("mouseover", (event, d) => {
       const info = casesByIso.get(d.id);
-      console.log(info)
       tooltipMap.html(`
         <strong>${d.properties.name}</strong><br/>
         Continent: ${info ? info.continent : "N/A"}<br/>
@@ -256,4 +249,33 @@ console.log(
         .style("opacity", 1);
     })
     .on("mouseout", () => tooltipMap.style("opacity", 0));
+
+  // after you compute `continents` (and before drawing the map):
+  const select = d3.select("#continent-select");
+
+  // add one <option> per continent
+  select.selectAll("option.continent")
+    .data(continents)
+    .enter().append("option")
+    .classed("continent", true)
+    .attr("value", d => d)
+    .text(d => d);
+
+  // when the user picks a continent, re‐shade the map:
+  select.on("change", () => {
+    const chosen = select.node().value;
+
+    svg2.selectAll("path.country")
+      .transition().duration(300)
+      .style("opacity", d => {
+        console.log(d.properties.name)
+        const info = casesByIso.get(d.id);
+        return (chosen === "All" || (info && info.continent === chosen))
+          ? 1
+          : 0;
+      });
+  });
+
 });
+
+
