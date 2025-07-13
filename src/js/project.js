@@ -169,7 +169,7 @@ function drawBars(data, x, y) {
     .attr("y", d => y(d.cases))
     .attr("width", 2)
     .attr("height", d => height - y(d.cases))
-    .attr("fill", "red")                    // ← add this
+    .attr("fill", "blue")                    // ← add this
     .on("mouseover", function (event, d) {
       const [mx, my] = d3.pointer(event, document.body);
       tooltip.style("opacity", 1)
