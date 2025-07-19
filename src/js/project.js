@@ -8,6 +8,8 @@ const svg = d3.select("#chart"),
 
 let fullData = [], xScale, yScale, currentScene = 0, scenes;
 
+scenes = [renderOverview, renderFirstWave, renderOmicron];
+
 
 const svg2 = d3.select("#map")
   // ensure the map SVG is the same size as your chart SVG
@@ -93,9 +95,6 @@ function renderOmicron() {
   container.append("g").call(ann);
 }
 
-
-
-
 // --- Load & Parse Data ---
 const parseDate = d3.timeParse("%Y-%m-%d");
 d3.csv(dataUrl,
@@ -114,26 +113,14 @@ d3.csv(dataUrl,
     .domain([0, d3.max(fullData, d => d.cases)]);
 
   // define scenes
-  scenes = [renderOverview, renderFirstWave, renderOmicron];
+  //scenes = [renderOverview, renderFirstWave, renderOmicron];
   // wire buttons
   d3.select("#prev").on("click", () => changeScene(-1));
   d3.select("#next").on("click", () => changeScene(1));
   // initial render
-  renderScene();
+  //renderScene();
 });
 
-// --- Scene Control ---
-function changeScene(delta) {
-  currentScene = Math.max(0, Math.min(scenes.length - 1, currentScene + delta));
-  d3.select("#prev").property("disabled", currentScene === 0);
-  d3.select("#next").property("disabled", currentScene === scenes.length - 1);
-  renderScene();
-}
-
-function renderScene() {
-  container.selectAll("*").remove();
-  scenes[currentScene]();
-}
 
 // --- Shared Drawing Helpers ---
 function drawAxes(x, y) {
@@ -167,7 +154,7 @@ function drawBars(data, x, y) {
     .join("rect")
     .attr("x", d => x(d.date) - 1)
     .attr("y", d => y(d.cases))
-    .attr("width", 2)
+    .attr("width", 4)
     .attr("height", d => height - y(d.cases))
     .attr("fill", "blue")                    // ← add this
     .on("mouseover", function (event, d) {
@@ -181,6 +168,90 @@ function drawBars(data, x, y) {
 }
 
 
+currentScene = 0;
+scenes = [renderOverview, renderFirstWave, renderOmicron];
+const narrationTexts = [
+  `This chart visualizes the progression of COVID-19 in the United States,
+    showing the daily new reported cases from March 2020 to early 2021.
+    The first major peak occurred in July 2020, reaching approximately 70,000 new cases daily.
+    After a slight decline, a second and much steeper wave began in late October,
+    peaking between December and January as cases exceeded 200,000 per day.
+    These trends reflect the impact of colder weather, holiday gatherings, and virus mutations before vaccines were widely available.`,
+  `This chart shows the early progression of COVID-19 in the United States, beginning in March 2020.
+    At first, case numbers were relatively low, but by the summer, the country experienced its first major wave.
+    In July 2020, daily new COVID-19 cases reached an average of around 70,000, marking the initial peak of the pandemic.
+    This surge was driven by early reopenings, inconsistent restrictions across states, and increased mobility during the summer months.
+    The wave began to ease in August, but it highlighted the virus’s capacity to spread rapidly, especially in the absence of coordinated public health measures.
+    This was just the beginning of a much larger and more complex pandemic timeline`,
+  `This chart shows the dramatic Omicron wave that struck the United States beginning in late 2021.
+Starting in November 2021, the country experienced a rapid surge in COVID-19 cases, fueled by the highly transmissible Omicron variant.
+By January 2022, daily case counts skyrocketed to unprecedented levels — surpassing even the previous winter surge — peaking above 5 million new cases per day in total.
+The steepness of this wave was unlike anything seen before in the pandemic, driven by Omicron’s ability to evade prior immunity from both vaccination and past infection.
+However, due to its shorter incubation period and less severe symptoms in vaccinated individuals, the surge declined rapidly by March 2022.
+This wave marked a turning point in the pandemic, with widespread exposure, accelerated booster campaigns, and changing public health strategies.`
+];
+
+const totalScenes = scenes.length;
+
+const playBtn = document.getElementById("play-btn");
+const pauseBtn = document.getElementById("pause-btn");
+let utterance = null;
+let isPaused = false;
+
+function changeScene(index) {
+  container.selectAll("*").remove();
+  scenes[index]();
+}
+
+// 🎙️ Speak narration and advance scene on end
+function speakScene(index) {
+  if (index >= totalScenes) {
+    playBtn.disabled = false;
+    pauseBtn.disabled = true;
+    return;
+  }
+
+  changeScene(index);
+  document.getElementById("narration-box").textContent = narrationTexts[index];
+  utterance = new SpeechSynthesisUtterance(narrationTexts[index]);
+  utterance.rate = 1.3;
+
+  utterance.onend = () => {
+    if (!isPaused) {
+      currentScene++;
+      speakScene(currentScene); // ⏭️ Go to next scene after narration
+    }
+  };
+
+  speechSynthesis.speak(utterance);
+}
+
+window.addEventListener("load", () => {
+  // Ensure any previous narration is stopped on reload
+  window.speechSynthesis.cancel();
+});
+
+playBtn.addEventListener("click", () => {
+  playBtn.disabled = true;
+  pauseBtn.disabled = false;
+
+  if (isPaused) {
+    isPaused = false;
+    speechSynthesis.resume();
+  } else {
+    currentScene = 0;
+    speakScene(currentScene);
+  }
+});
+
+pauseBtn.addEventListener("click", () => {
+  speechSynthesis.pause();
+  isPaused = true;
+  playBtn.disabled = false;
+  pauseBtn.disabled = true;
+});
+
+  
 // 1) Load both datasets in parallel
 Promise.all([
   d3.json("https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson"),
@@ -338,5 +409,3 @@ legendG.append("text")
   
 
 });
-
-

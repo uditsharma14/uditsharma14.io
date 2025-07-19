@@ -6,14 +6,162 @@
         <link rel="stylesheet" href="./src/css/project.css">
     </head>
     <body>
+        <div id="intro-modal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="carousel">
+      <div class="slide active">
+         <h2>Welcome to COVID-19 Narrative Visualization</h2>
+    <p>
+      The COVID-19 pandemic has had a profound and far-reaching impact on the world —
+      resulting in tens of millions of deaths, overwhelming healthcare systems, and causing widespread
+      social and economic disruption.
+    </p>
+    <p>
+      The virus’s rapid global spread triggered an unprecedented scientific and policy response:
+      rapid testing, vaccine development, social distancing, and financial relief programs.
+      However, the global response was uneven, revealing stark disparities in healthcare access,
+      vaccination coverage, and policy effectiveness across countries and regions.
+    </p>
+    <p>
+      Throughout this crisis, <strong>reliable data</strong> proved essential for tracking the virus,
+      evaluating policy outcomes, and informing public health decisions.
+    </p>
+    <p>
+      Our team at <strong>Our World in Data</strong> contributed to this effort by publishing daily updates
+      on key pandemic indicators and building two global datasets — one on <strong>COVID-19 testing</strong>
+      and another on <strong>vaccination rollout</strong>.
+    </p>
+    <p>
+      The <strong>COVID-19 Data Explorer</strong>, built from these datasets, became a widely used resource
+      for researchers, journalists, policymakers, and the public to monitor the pandemic’s progression across
+      countries and over time.
+    </p>
+
+    <h3 style="margin-top: 20px;">Key Fields Tracked</h3>
+    <ul class="field-list">
+      <li>Daily and cumulative cases</li>
+      <li>Deaths and mortality rates</li>
+      <li>Testing rates and positivity</li>
+      <li>Vaccination doses administered</li>
+      <li>Fully vaccinated population</li>
+      <li>Hospitalizations and ICU occupancy</li>
+      <li>Policy stringency and containment measures</li>
+      <li>Mobility and behavioral changes</li>
+    </ul>
+      </div>
+      <div class="slide">
+        <h2>About the Visualization</h2>
+
+    <h3>Messaging</h3>
+    <p>
+      COVID-19 affected countries across the globe, but the intensity, timing, and scale of its impact varied 
+      significantly by region.This visualization begins by unpacking the timeline of daily cases worldwide and 
+      then shifts focus to spatial differences using a continent-filterable world map. Together, they highlight 
+      how the pandemic evolved both over time and across geographies.
+    </p>
+
+    <h3>Narrative Structure</h3>
+    <p>This narrative visualization follows a <strong>Martini Glass structure</strong>, beginning with a linear, guided story and transitioning into user interaction.</p>
+    <ul class="field-list">
+      <li><strong>First Chart </strong> introduces the  progression of the pandemic in USA with a bar chart showing major waves like overall Covid Progression, First Wave and Omicron.</li>
+      <li><strong>Second Chart 2</strong> shifts to a choropleth map of country-level impact with a continent filter for spatial exploration.</li>
+      <li>While guided, both scenes allow light interaction (playback, filters), setting up the story for further exploratory visuals in later scenes.</li>
+    </ul>
+
+
+    <h3>Visual Structure</h3>
+    <ul class="field-list">
+      <li>Each scene includes a clear title, central interactive chart, and narrative block placed above or beside the chart.</li>
+      <li>Dropdowns, legends, and tooltips are consistently styled across both scenes to maintain cohesion.</li>
+      <li>
+        Color encoding strategies include:
+        <ul>
+          <li><strong>Bar Chart:</strong> Blue bars for daily case volume over time.</li>
+          <li><strong>Choropleth Map:</strong> <code>d3.interpolateReds</code> for cumulative cases per country.</li>
+          <li>Selected continents remain vivid while others dim, focusing user attention on filtered regions.</li>
+        </ul>
+      </li>
+    </ul>
+      </div>
+      <div class="slide">
+  <h2>Triggers & Annotations</h2>
+
+  <h3>Triggers</h3>
+  <p>
+    Triggers are user interactions or automatic events that initiate transitions or changes within the visualization.
+    These allow for an engaging and dynamic exploration experience.
+  </p>
+
+  <ul>
+    <li>
+      <strong>▶️ Play/Pause Buttons (Chart 1 – Bar Chart):</strong>
+      Clicking the <em>Play</em> button animates the timeline of global COVID-19 cases, showing how the pandemic evolved over time.
+      The <em>Pause</em> button stops the animation to allow closer inspection of specific dates.
+    </li>
+    <li>
+      <strong>🌍 Continent Dropdown (Chart 2 – Choropleth Map):</strong>
+      Selecting a continent filters the map to highlight countries within the chosen region while dimming others.
+      This helps users focus on specific areas of interest.
+    </li>
+    <li>
+      <strong>↔️ Navigation Arrows:</strong>
+      Used within the modal carousel to navigate between different narrative slides.
+    </li>
+  </ul>
+
+  <h3>Annotations</h3>
+  <p>
+    Annotations provide contextual cues and highlight key insights in each scene to support storytelling and user understanding.
+  </p>
+
+  <ul>
+    <li>
+      <strong>Chart 1 (Bar Chart – For different Covid waves in USA):</strong>
+      <ul>
+        <li>
+          Static titles describe the scope (e.g., "SARS-CoV-2, 2020–2023").
+        </li>
+        <li>
+          Optionally, key peaks like <em>Delta</em> or <em>Omicron</em> surges can be labeled using dynamic annotations.
+        </li>
+        <li>
+          Axis titles and tooltips assist in interpreting daily new case counts.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <strong>Chart 2 (Choropleth Map – Global Overview):</strong>
+      <ul>
+        <li>
+          Hover tooltips show country-specific case data.
+        </li>
+        <li>
+          The dropdown selection acts as a pseudo-annotation, guiding attention through focus/dimming effects.
+        </li>
+      </ul>
+    </li>
+  </ul>
+        <button id="start-btn">Start Visualization</button>
+      </div>
+    </div>
+    <div class="carousel-controls">
+      <button id="prev-slide" disabled>&larr;</button>
+      <button id="next-slide">&rarr;</button>
+    </div>
+  </div>
+</div>
+      
         <h1>COVID-19 Daily New Cases in the USA</h1>
-        <div id="controls">
-            <button id="prev" disabled>← Prev</button>
-            <button id="next">Next →</button>
+        <div id="narration-controls" style="margin-top: 20px;">
+        <button id="play-btn">▶️ Play</button>
+        <button id="pause-btn" disabled>⏸️ Pause</button>
         </div>
         <div style="position: relative; display: inline-block;">
             <svg id="chart" width="900" height="500"></svg>
             <div class="tooltip" id="tooltip"></div>
+        </div>
+        <div class="narration-box">
+        <p id = "narration-box"></p>
         </div>
         </br>
         </br>
@@ -33,6 +181,7 @@
         </div>
          <script src="https://d3js.org/d3.v7.min.js"></script>
         <script src="./src/js/project.js"></script>
+        <script src="./src/js/narrative.js"></script>
         <!-- Load d3-annotation -->
         <script src="https://rawgit.com/susielu/d3-annotation/master/d3-annotation.min.js"></script>
     </body>
