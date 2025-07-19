@@ -63,7 +63,9 @@ function renderFirstWave() {
       y: yScale(70_000),
       dx: 0, dy: -40
     }]);
-  container.append("g").call(ann);
+  container.append("g").
+  attr("class", "annotation-group").
+  call(ann);
 }
 
 function renderOmicron() {
@@ -81,18 +83,20 @@ function renderOmicron() {
       },
       {
         note: { title: "Omicron Wave", label: "Nov 2021 – Feb 2022" },
-        x: x2(parseDate("2022-02-01")),
-        y: yScale(4500_000),
+        x: x2(parseDate("2022-01-09")),
+        y: yScale(5000_000),
         dx: -20, dy: -40
       },
       {
         note: { title: "Decline", label: "Feb–Mar 2022" },
         x: x2(parseDate("2022-02-15")),
-        y: yScale(1_200_000),
+        y: yScale(1500_000),
         dx: +30, dy: +30
       }
     ]);
-  container.append("g").call(ann);
+  container.append("g")
+  .attr("class", "annotation-group")
+  .call(ann);
 }
 
 // --- Load & Parse Data ---
@@ -171,26 +175,12 @@ function drawBars(data, x, y) {
 currentScene = 0;
 scenes = [renderOverview, renderFirstWave, renderOmicron];
 const narrationTexts = [
-  `This chart visualizes the progression of COVID-19 in the United States,
-    showing the daily new reported cases from March 2020 to early 2021.
-    The first major peak occurred in July 2020, reaching approximately 70,000 new cases daily.
-    After a slight decline, a second and much steeper wave began in late October,
-    peaking between December and January as cases exceeded 200,000 per day.
-    These trends reflect the impact of colder weather, holiday gatherings, and virus mutations before vaccines were widely available.`,
-  `This chart shows the early progression of COVID-19 in the United States, beginning in March 2020.
-    At first, case numbers were relatively low, but by the summer, the country experienced its first major wave.
-    In July 2020, daily new COVID-19 cases reached an average of around 70,000, marking the initial peak of the pandemic.
-    This surge was driven by early reopenings, inconsistent restrictions across states, and increased mobility during the summer months.
-    The wave began to ease in August, but it highlighted the virus’s capacity to spread rapidly, especially in the absence of coordinated public health measures.
-    This was just the beginning of a much larger and more complex pandemic timeline`,
-  `This chart shows the dramatic Omicron wave that struck the United States beginning in late 2021.
-Starting in November 2021, the country experienced a rapid surge in COVID-19 cases, fueled by the highly transmissible Omicron variant.
-By January 2022, daily case counts skyrocketed to unprecedented levels — surpassing even the previous winter surge — peaking above 5 million new cases per day in total.
-The steepness of this wave was unlike anything seen before in the pandemic, driven by Omicron’s ability to evade prior immunity from both vaccination and past infection.
-However, due to its shorter incubation period and less severe symptoms in vaccinated individuals, the surge declined rapidly by March 2022.
-This wave marked a turning point in the pandemic, with widespread exposure, accelerated booster campaigns, and changing public health strategies.`
+  `Tracks daily U.S. COVID-19 cases from March 2020. Peaks in July and Jan 2021 reached 70k and 200k+ cases daily, driven by reopenings, holidays, and virus spread before vaccines.`,
+  `Shows early U.S. outbreak. Cases rose sharply by July due to reopenings and travel, easing slightly in August but exposing gaps in public health response.`,
+  `Omicron triggered record U.S. cases in Jan 2022, topping 5 million daily. Despite its rapid spread, cases declined by March due to boosters and milder infections.`
 ];
 
+//const narrationTexts = ['','','' ]
 const totalScenes = scenes.length;
 
 const playBtn = document.getElementById("play-btn");

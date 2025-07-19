@@ -4,6 +4,7 @@ window.addEventListener("DOMContentLoaded", () => {
   const nextBtn = document.getElementById("next-slide");
   const prevBtn = document.getElementById("prev-slide");
   const startBtn = document.getElementById("start-btn");
+  
 
   let currentSlide = 0;
 
@@ -34,7 +35,7 @@ window.addEventListener("DOMContentLoaded", () => {
     modal.style.display = "none";
   });
    
-  const narrationText = document.getElementById("description").textContent;
+  const narrationText = document.getElementById("narration-box").textContent;
 
   const utterance = new SpeechSynthesisUtterance(narrationText);
   utterance.lang = 'en-US'; // Optional: set language
