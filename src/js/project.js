@@ -174,16 +174,16 @@ function drawBars(data, x, y) {
 
 currentScene = 0;
 scenes = [renderOverview, renderFirstWave, renderOmicron];
-/*const narrationTexts = [
+const narrationTexts = [
   `This chart shows daily new COVID-19 cases in the U.S. from March 2020 to early 2021.
   The first major peak in July 2020 saw ~70,000 cases/day. A sharper wave followed in late October, peaking above 200,000/day by January — driven by winter, holidays, and variants before vaccines were widespread.`,
   `This chart shows the initial COVID-19 spread in the U.S. starting in March 2020.
 Cases surged by July to 70,000/day, driven by early reopenings, inconsistent restrictions, and summer travel. Though cases declined in August, the wave exposed the virus’s rapid spread without coordinated response.`,
   `This chart captures the Omicron wave beginning in November 2021.
 Daily cases surged past 5 million by January 2022 — the pandemic’s peak — driven by Omicron’s high spread and immune escape. Despite lower severity in the vaccinated, cases dropped sharply by March, marking a shift in public exposure and response.`
-]; */
+]; 
 
-const narrationTexts = ['','','' ]
+//const narrationTexts = ['','','' ]
 const totalScenes = scenes.length;
 
 const playBtn = document.getElementById("play-btn");
