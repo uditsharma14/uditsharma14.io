@@ -214,8 +214,23 @@ function speakScene(index) {
   changeScene(index);
   document.getElementById("narration-box").textContent = narrationTexts[index];
   utterance = new SpeechSynthesisUtterance(narrationTexts[index]);
-  utterance.rate = 1.3;
-
+  
+  speechSynthesis.onvoiceschanged = () => {
+  const voices = speechSynthesis.getVoices();
+  // Find a more natural/melodic voice
+  const melodicVoice = voices.find(voice => 
+    voice.name.includes("Google UK English Female") || 
+    voice.name.includes("Microsoft Zira") || 
+    voice.lang === "en-GB"
+  );
+  if (melodicVoice) {
+    utterance.voice = melodicVoice;
+  }
+  utterance.pitch = 1.2;   // Slightly higher pitch for a melodic tone
+  utterance.rate = 1.2;   // Slightly slower for clarity
+  speechSynthesis.speak(utterance);
+};
+  
   utterance.onend = () => {
     if (!isPaused) {
       currentScene++;
