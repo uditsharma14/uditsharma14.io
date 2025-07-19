@@ -174,16 +174,16 @@ function drawBars(data, x, y) {
 
 currentScene = 0;
 scenes = [renderOverview, renderFirstWave, renderOmicron];
-const narrationTexts = [
+/*const narrationTexts = [
   `This chart shows daily new COVID-19 cases in the U.S. from March 2020 to early 2021.
   The first major peak in July 2020 saw ~70,000 cases/day. A sharper wave followed in late October, peaking above 200,000/day by January — driven by winter, holidays, and variants before vaccines were widespread.`,
   `This chart shows the initial COVID-19 spread in the U.S. starting in March 2020.
 Cases surged by July to 70,000/day, driven by early reopenings, inconsistent restrictions, and summer travel. Though cases declined in August, the wave exposed the virus’s rapid spread without coordinated response.`,
   `This chart captures the Omicron wave beginning in November 2021.
 Daily cases surged past 5 million by January 2022 — the pandemic’s peak — driven by Omicron’s high spread and immune escape. Despite lower severity in the vaccinated, cases dropped sharply by March, marking a shift in public exposure and response.`
-];
+]; */
 
-//const narrationTexts = ['','','' ]
+const narrationTexts = ['','','' ]
 const totalScenes = scenes.length;
 
 const playBtn = document.getElementById("play-btn");
@@ -274,6 +274,8 @@ Promise.all([
 ]).then(([world, rawData]) => {
 
   const iso3List = world.features.map(f => f.id);
+
+  
   // --- 1) Aggregate to latest per ISO code ---
   const casesByIso = new Map();
   rawData.forEach(d => {
@@ -284,6 +286,21 @@ Promise.all([
     }
   });
 
+  
+  
+  // --- 1) Aggregate to cases per continents ---
+  const casesByContinent = new Map();
+casesByIso.forEach(data => {
+  const continent = data.continent;
+  if (!continent) return;
+  const currentTotal = casesByContinent.get(continent) || 0;
+  casesByContinent.set(continent, currentTotal + data.totalCases);
+});
+
+console.log("Cases by Continent:");
+casesByContinent.forEach((val, key) => {
+  console.log(`${key}: ${d3.format(",")(val)}`);
+});
   const isoByContinent = new Map();
   rawData.forEach(d => {
     if (iso3List.includes(d.iso)) {
@@ -293,16 +310,25 @@ Promise.all([
 
   // Build continent color scale
   const continents = Array.from(new Set(Array.from(casesByIso.values()).map(d => d.continent).filter(c => c)));
+  // after you compute `continents` (and before drawing the map):
+  const select = d3.select("#continent-select");
+
+  // add one <option> per continent
+  select.selectAll("option.continent")
+    .data(continents)
+    .enter().append("option")
+    .classed("continent", true)
+    .attr("value", d => d)
+    .text(d => d);
+
   const allTotals = Array.from(casesByIso.values()).map(d => d.totalCases);
   const minCases = d3.min(allTotals);
   const maxCases = d3.max(allTotals);
 
-  const color = d3.scaleOrdinal().domain(continents).range(d3.schemeCategory10);
-
-  const colorByCases = d3.scaleSequential()
-    .domain([minCases, maxCases])
-    .interpolator(d3.interpolateRgb("#fee5d9", "#8B0000"))
-    .clamp(true);  // light → dark
+ const colorByCases = d3.scaleSequential()
+  .domain([minCases, maxCases])
+  .interpolator(d3.interpolateRgb("#fee5d9", "#8B0000"))
+  .clamp(true);  // light → dark
 
   // Draw countries
   svg2.append("g")
@@ -331,16 +357,61 @@ Promise.all([
     })
     .on("mouseout", () => tooltipMap.style("opacity", 0));
 
-  // after you compute `continents` (and before drawing the map):
-  const select = d3.select("#continent-select");
 
-  // add one <option> per continent
-  select.selectAll("option.continent")
-    .data(continents)
-    .enter().append("option")
-    .classed("continent", true)
-    .attr("value", d => d)
-    .text(d => d);
+  
+const continentCoords = [
+  { name: "North America", coords: [-100, 45], dx: -200, dy: -10 },
+  { name: "South America", coords: [-60, -15], dx: -190, dy: 10 },
+  { name: "Europe", coords: [10, 50], dx: -170, dy: -20 },
+  { name: "Africa", coords: [20, 0], dx: -170, dy: 10 },
+  { name: "Asia", coords: [90, 40], dx: -200, dy: 0 },
+  { name: "Oceania", coords: [140, -25], dx: -180, dy: 20 }
+].map(d => ({
+  ...d,
+  totalCases: casesByContinent.has(d.name)
+    ? d3.format(",")(casesByContinent.get(d.name))
+    : "N/A"
+}));
+
+
+  const labelGroup = svg2.append("g")
+  .attr("class", "continent-labels")
+  .selectAll("g")
+  .data(continentCoords)
+  .join("g")
+  .attr("transform", d => {
+    const [x, y] = projection(d.coords);
+    return `translate(${x + d.dx}, ${y + d.dy})`;
+  });
+
+labelGroup.append("text")
+  .attr("text-anchor", "start") // optional: use "end" if you want them right-aligned
+  .style("font-size", "13px")
+  .style("font-weight", "600")
+  .style("fill", "#222")
+  .style("pointer-events", "none")
+  .selectAll("tspan")
+  .data(d => [
+    { line: d.name, dy: 0 },
+    { line: `${d.totalCases} cases`, dy: 14 }
+  ])
+  .join("tspan")
+  .attr("x", 0)
+  .attr("dy", d => d.dy)
+  .text(d => d.line);
+
+
+  labelGroup.append("line")
+  .attr("x1", d => -d.dx)
+  .attr("y1", d => -d.dy)
+  .attr("x2", 0)
+  .attr("y2", 0)
+  .attr("stroke", "#555")            
+  .attr("stroke-width", 1.5)            
+  .attr("stroke-dasharray", "2,2");    
+
+
+  
 
   // when the user picks a continent, re‐shade the map:
   select.on("change", () => {
@@ -353,6 +424,14 @@ Promise.all([
           ? 1
           : 0;
       });
+     
+  // Show/hide continent labels
+  svg2.selectAll(".continent-labels > g")
+    .style("opacity", function() {
+      const labelName = d3.select(this)._groups[0][0].__data__.name;
+      console.log(labelName);
+      return (chosen === "All" || labelName === chosen) ? 1 : 0;
+    });
   });
   // 1) Legend dimensions & position
 const legendWidth   = 120,
